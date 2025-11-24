@@ -8,6 +8,7 @@ import {
   faEnvelope,
   faCopyright,
 } from "@fortawesome/free-solid-svg-icons";
+import logo from "../../public/Images/logo no side.png";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -24,19 +25,17 @@ const Footer = () => {
             <Link to="/" className="flex items-center gap-3 group">
               <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-secondary to-accent rounded-xl blur opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
-                <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-lg shadow-primary/30 transform transition-transform duration-300 group-hover:scale-110">
-                  <FontAwesomeIcon
-                    icon={faGavel}
-                    className="text-white text-xl"
+                <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-primary via-secondary to-accent flex items-center justify-center shadow-lg shadow-primary/30 transform transition-transform duration-300 group-hover:scale-110 p-1.5 overflow-hidden">
+                  <img
+                    src={logo}
+                    alt="P99Soft Logo"
+                    className="w-full h-full object-contain filter drop-shadow-sm group-hover:drop-shadow-md transition-all duration-300"
                   />
                 </div>
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
                   Auction Hub
-                </span>
-                <span className="text-xs text-text-muted">
-                  Cricket Player Auction
                 </span>
               </div>
             </Link>
