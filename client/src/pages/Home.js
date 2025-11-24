@@ -20,12 +20,10 @@ const Home = () => {
         <div className="max-w-7xl mx-auto">
           {/* Modern title section with gradient text */}
           <div className="text-center mb-16 md:mb-20 space-y-6">
-            <div className="inline-block">
-              <Title title="Cricket Player" fadeAnimation="right" />
-            </div>
-            <div className="inline-block">
-              <Title title="Auction" fadeAnimation="left" />
-            </div>
+            <Title
+              title="P99SOFT FUN COMMITTEE WELCOMES CAPTAINS FOR BID"
+              fadeAnimation="left"
+            />
 
             {/* Enhanced Description Section */}
             <div className="max-w-4xl mx-auto mt-10 space-y-6 animate-fade-in">

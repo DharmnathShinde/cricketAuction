@@ -7,6 +7,7 @@ import JoinAuction from "../components/JoinAuction";
 import CreateAuction from "../components/CreateAuction";
 import Game from "../components/Game";
 import Lobby from "../components/Lobby";
+import ViewAuction from "../components/ViewAuction.js";
 import Loader from "./Loading";
 
 import io from "socket.io-client";
