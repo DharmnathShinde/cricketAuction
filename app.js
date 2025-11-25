@@ -21,6 +21,7 @@ const server = http.createServer(app);
 const io = socketio(server, {
   cors: {
     origin: "https://cricketauction-production-8eae.up.railway.app",
+
     credentials: true,
   },
 });
@@ -30,6 +31,7 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: "https://cricketauction-production-8eae.up.railway.app",
+
     credentials: true,
   })
 );
