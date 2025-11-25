@@ -6,7 +6,7 @@ import { register } from "../services/auth.service";
 import { useState, useContext } from "react";
 import Input from "../components/Input";
 import Select from "../components/Select";
-import Loader from "./Loading";
+import Loader from "../components/Loading.component";
 
 import { UserContext } from "../hooks/UserContext";
 import {
