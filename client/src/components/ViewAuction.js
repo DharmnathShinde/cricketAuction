@@ -36,8 +36,10 @@ const ViewAuction = ({
       return;
     }
     setLoading(true);
+    const username =
+      user?.username || `guest_${Math.random().toString(36).substring(2, 9)}`;
     socket.emit("viewAuction", {
-      username: user.username,
+      username: username,
       room: room.trim(),
     });
     // Don't set loading to false here - let the socket response handle it

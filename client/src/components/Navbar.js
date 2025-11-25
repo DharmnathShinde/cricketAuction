@@ -74,21 +74,43 @@ const Navbar = () => {
                 }`}
               ></span>
             </Link>
+            {user && (
+              <Link
+                to="/auction"
+                className={`relative uppercase text-xs md:text-sm font-semibold tracking-wider transition-all duration-300 group px-4 py-2.5 rounded-lg ${
+                  location.pathname === "/auction"
+                    ? "text-primary bg-primary/10 hover:bg-primary/15"
+                    : "text-text-primary hover:text-primary hover:bg-white/5"
+                }`}
+                onClick={() => setBarState(false)}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Auction
+                </span>
+                <span
+                  className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-primary to-secondary transition-all duration-300 ${
+                    location.pathname === "/auction"
+                      ? "w-3/4"
+                      : "w-0 group-hover:w-3/4"
+                  }`}
+                ></span>
+              </Link>
+            )}
             <Link
-              to="/auction"
+              to="/view-auction"
               className={`relative uppercase text-xs md:text-sm font-semibold tracking-wider transition-all duration-300 group px-4 py-2.5 rounded-lg ${
-                location.pathname === "/auction"
+                location.pathname === "/view-auction"
                   ? "text-primary bg-primary/10 hover:bg-primary/15"
                   : "text-text-primary hover:text-primary hover:bg-white/5"
               }`}
               onClick={() => setBarState(false)}
             >
-              <span className="relative z-10 flex items-center gap-2">
-                Auction
+              <span className="relative z-10 flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                View Auction
               </span>
               <span
                 className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 h-0.5 bg-gradient-to-r from-primary to-secondary transition-all duration-300 ${
-                  location.pathname === "/auction"
+                  location.pathname === "/view-auction"
                     ? "w-3/4"
                     : "w-0 group-hover:w-3/4"
                 }`}

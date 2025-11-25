@@ -6,7 +6,6 @@ import {
   faPlus,
   faUsers,
   faGavel,
-  faEye,
   faExclamationTriangle,
   faTimes,
   faArrowRight,
@@ -94,10 +93,6 @@ const CreateAuction = ({
     setJoin(true);
   };
 
-  const viewAuction = () => {
-    setView(true);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Static background with subtle pattern */}
@@ -141,7 +136,7 @@ const CreateAuction = ({
         </div>
 
         {/* Action Cards - Using flexbox for equal heights */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-4xl mx-auto">
           {/* Create Auction Card */}
           <div className="glassmorphism p-8 rounded-3xl border border-white/20 backdrop-blur-xl hover:border-primary/50 transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-2 transform flex flex-col h-full">
             <div className="flex flex-col items-center text-center flex-grow">
@@ -211,42 +206,6 @@ const CreateAuction = ({
                 className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-secondary via-purple-600 to-purple-700 text-white font-semibold uppercase tracking-wide transition-all duration-300 hover:shadow-xl hover:shadow-secondary/30 hover:scale-105 transform active:scale-95"
               >
                 Join Existing Room
-              </button>
-            </div>
-          </div>
-
-          {/* View Auction Card */}
-          <div className="glassmorphism p-8 rounded-3xl border border-white/20 backdrop-blur-xl hover:border-accent/50 transition-all duration-300 hover:shadow-2xl hover:shadow-accent/20 hover:-translate-y-2 transform flex flex-col h-full">
-            <div className="flex flex-col items-center text-center flex-grow">
-              {/* Icon Container */}
-              <div className="relative mb-6">
-                <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-accent via-teal-600 to-teal-700 flex items-center justify-center shadow-xl shadow-accent/30 transform transition-transform duration-300 group-hover:scale-110">
-                  <FontAwesomeIcon
-                    icon={faEye}
-                    className="text-4xl text-white"
-                  />
-                </div>
-                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-accent animate-pulse"></div>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-2xl font-bold text-text-primary mb-4">
-                View Auction
-              </h2>
-
-              {/* Description - flex-grow to push button down */}
-              <p className="text-text-secondary text-base mb-8 leading-relaxed flex-grow">
-                Watch an ongoing auction in view-only mode. Enter a room code to
-                observe the bidding action without participating. Perfect for
-                spectators and learning.
-              </p>
-
-              {/* Button */}
-              <button
-                onClick={viewAuction}
-                className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-accent via-teal-600 to-teal-700 text-white font-semibold uppercase tracking-wide transition-all duration-300 hover:shadow-xl hover:shadow-accent/30 hover:scale-105 transform active:scale-95"
-              >
-                View Auction Room
               </button>
             </div>
           </div>

@@ -5,7 +5,26 @@ const { auth } = require("../middleware/auth");
 // Sign up route, used for creating new accounts
 router.post("/signup", async (req, res) => {
   try {
-    const user = new User({ ...req.body });
+    const { username, email, password, role } = req.body;
+
+    // Validate required fields
+    if (!username || !email || !password || !role) {
+      return res.status(400).send({
+        success: false,
+        message: "Username, email, password, and role are required",
+      });
+    }
+
+    // Validate role
+    const validRoles = ["organizer", "captain", "viewer"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).send({
+        success: false,
+        message: "Invalid role. Must be: organizer, captain, or viewer",
+      });
+    }
+
+    const user = new User({ username, email, password, role });
     const token = await user.generateAuthToken();
     // Creating a http only cookie, which is used for authorization
     res.cookie("jwt", token, {
@@ -43,6 +62,14 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const user = await User.findByCredentials({ ...req.body });
+
+    // Ensure user has a valid role (for existing users)
+    const validRoles = ["organizer", "captain", "viewer"];
+    if (!user.role || !validRoles.includes(user.role)) {
+      user.role = "viewer";
+      await user.save();
+    }
+
     const token = await user.generateAuthToken();
     // Creating a http only cookie, which is used for authorization
     res.cookie("jwt", token, {
@@ -57,9 +84,10 @@ router.post("/login", async (req, res) => {
       user: user.getPublicProfile(),
     });
   } catch (error) {
+    console.error("Login error:", error);
     res.status(401).send({
       success: false,
-      message: error.message,
+      message: error.message || "Login failed. Please check your credentials.",
     });
   }
 });

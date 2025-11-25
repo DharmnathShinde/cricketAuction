@@ -1,15 +1,31 @@
 const Player = require("../database/models/player.model");
 const User = require("../database/models/user.model");
 
-// Get all players for the authenticated user
+// Get all players for the authenticated user (includes organizer players)
 const getPlayers = async (req, res) => {
   try {
-    const players = await Player.find({ owner: req.id }).sort({
+    const user = await User.findById(req.id);
+    const isOrganizer = user && user.role === "organizer";
+
+    // Get user's own players
+    const userPlayers = await Player.find({ owner: req.id }).sort({
       createdAt: -1,
     });
+
+    // Get organizer players (available to all)
+    const organizerPlayers = await Player.find({
+      isOrganizerPlayer: true,
+    }).sort({
+      createdAt: -1,
+    });
+
+    // Combine players
+    const allPlayers = [...userPlayers, ...organizerPlayers];
+
     res.status(200).send({
       success: true,
-      players,
+      players: allPlayers,
+      isOrganizer,
     });
   } catch (error) {
     res.status(500).send({
@@ -23,7 +39,9 @@ const getPlayers = async (req, res) => {
 // Add a new player
 const addPlayer = async (req, res) => {
   try {
-    const { name, role } = req.body;
+    const { name, role, isOrganizerPlayer } = req.body;
+    const user = await User.findById(req.id);
+    const isOrganizer = user && user.role === "organizer";
 
     if (!name || !role) {
       return res.status(400).send({
@@ -42,8 +60,48 @@ const addPlayer = async (req, res) => {
       });
     }
 
+    // If trying to add organizer player, check if user is organizer
+    if (isOrganizerPlayer && !isOrganizer) {
+      return res.status(403).send({
+        success: false,
+        message: "Only organizers can add players for all auctions",
+      });
+    }
+
+    // If organizer is adding a player for all auctions
+    if (isOrganizer && isOrganizerPlayer) {
+      // Check if organizer player with same name already exists globally
+      const existingPlayer = await Player.findOne({
+        name: name.trim(),
+        isOrganizerPlayer: true,
+      });
+
+      if (existingPlayer) {
+        return res.status(400).send({
+          success: false,
+          message: "An organizer player with this name already exists",
+        });
+      }
+
+      const player = new Player({
+        name: name.trim(),
+        role: role.toLowerCase(),
+        owner: null, // No owner for organizer players
+        addedBy: req.id,
+        isOrganizerPlayer: true,
+      });
+
+      await player.save();
+
+      return res.status(201).send({
+        success: true,
+        message: "Player added successfully for all auctions",
+        player,
+      });
+    }
+
+    // Regular participant adding their own player
     // Check if player with same name already exists for this user
-    // Note: Different users can have players with the same name
     const existingPlayer = await Player.findOne({
       name: name.trim(),
       owner: req.id,
@@ -60,6 +118,8 @@ const addPlayer = async (req, res) => {
       name: name.trim(),
       role: role.toLowerCase(),
       owner: req.id,
+      addedBy: req.id,
+      isOrganizerPlayer: false,
     });
 
     await player.save();
@@ -73,7 +133,7 @@ const addPlayer = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).send({
         success: false,
-        message: "You already have a player with this name",
+        message: "A player with this name already exists",
       });
     }
     res.status(500).send({
@@ -89,8 +149,21 @@ const updatePlayer = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, role } = req.body;
+    const user = await User.findById(req.id);
+    const isOrganizer = user && user.role === "organizer";
 
-    const player = await Player.findOne({ _id: id, owner: req.id });
+    // Find player - check if user owns it or if it's an organizer player and user is organizer
+    let player;
+    if (isOrganizer) {
+      // Organizers can update their own players or organizer players
+      player = await Player.findOne({
+        _id: id,
+        $or: [{ owner: req.id }, { isOrganizerPlayer: true }],
+      });
+    } else {
+      // Regular users can only update their own players
+      player = await Player.findOne({ _id: id, owner: req.id });
+    }
 
     if (!player) {
       return res.status(404).send({
@@ -99,19 +172,29 @@ const updatePlayer = async (req, res) => {
       });
     }
 
-    // If updating name, check for duplicate within current user's players
-    // Note: Different users can have players with the same name
+    // If updating name, check for duplicate
     if (name && name.trim() !== player.name) {
-      const existingPlayer = await Player.findOne({
-        name: name.trim(),
-        owner: req.id,
-        _id: { $ne: id }, // Exclude the current player being updated
-      });
+      let existingPlayer;
+      if (player.isOrganizerPlayer && isOrganizer) {
+        // Check globally for organizer players
+        existingPlayer = await Player.findOne({
+          name: name.trim(),
+          isOrganizerPlayer: true,
+          _id: { $ne: id },
+        });
+      } else {
+        // Check within user's players
+        existingPlayer = await Player.findOne({
+          name: name.trim(),
+          owner: req.id,
+          _id: { $ne: id },
+        });
+      }
 
       if (existingPlayer) {
         return res.status(400).send({
           success: false,
-          message: "You already have a player with this name",
+          message: "A player with this name already exists",
         });
       }
       player.name = name.trim();
@@ -139,7 +222,7 @@ const updatePlayer = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).send({
         success: false,
-        message: "You already have a player with this name",
+        message: "A player with this name already exists",
       });
     }
     res.status(500).send({
@@ -154,8 +237,21 @@ const updatePlayer = async (req, res) => {
 const deletePlayer = async (req, res) => {
   try {
     const { id } = req.params;
+    const user = await User.findById(req.id);
+    const isOrganizer = user && user.role === "organizer";
 
-    const player = await Player.findOneAndDelete({ _id: id, owner: req.id });
+    // Find player - check if user owns it or if it's an organizer player and user is organizer
+    let player;
+    if (isOrganizer) {
+      // Organizers can delete their own players or organizer players
+      player = await Player.findOne({
+        _id: id,
+        $or: [{ owner: req.id }, { isOrganizerPlayer: true }],
+      });
+    } else {
+      // Regular users can only delete their own players
+      player = await Player.findOne({ _id: id, owner: req.id });
+    }
 
     if (!player) {
       return res.status(404).send({
@@ -163,6 +259,8 @@ const deletePlayer = async (req, res) => {
         message: "Player not found",
       });
     }
+
+    await Player.findByIdAndDelete(id);
 
     res.status(200).send({
       success: true,
@@ -177,18 +275,51 @@ const deletePlayer = async (req, res) => {
   }
 };
 
-// Get player count for user
+// Get player count for user (includes organizer players)
 const getPlayerCount = async (req, res) => {
   try {
-    const count = await Player.countDocuments({ owner: req.id });
+    const user = await User.findById(req.id);
+
+    // Count user's own players
+    const userPlayerCount = await Player.countDocuments({ owner: req.id });
+
+    // Count organizer players (available to all)
+    const organizerPlayerCount = await Player.countDocuments({
+      isOrganizerPlayer: true,
+    });
+
+    const totalCount = userPlayerCount + organizerPlayerCount;
+
     res.status(200).send({
       success: true,
-      count,
+      count: totalCount,
+      userPlayerCount,
+      organizerPlayerCount,
     });
   } catch (error) {
     res.status(500).send({
       success: false,
       message: "Error fetching player count",
+      error: error.message,
+    });
+  }
+};
+
+// Get all organizer players (organizer only)
+const getOrganizerPlayers = async (req, res) => {
+  try {
+    const players = await Player.find({ isOrganizerPlayer: true })
+      .populate("addedBy", "username")
+      .sort({ createdAt: -1 });
+
+    res.status(200).send({
+      success: true,
+      players,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error fetching organizer players",
       error: error.message,
     });
   }
@@ -200,4 +331,5 @@ module.exports = {
   updatePlayer,
   deletePlayer,
   getPlayerCount,
+  getOrganizerPlayers,
 };

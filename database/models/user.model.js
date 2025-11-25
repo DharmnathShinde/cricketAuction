@@ -24,6 +24,11 @@ const UserSchema = new Schema(
       unique: true,
       dropDups: true,
     },
+    role: {
+      type: String,
+      enum: ["organizer", "captain", "viewer"],
+      default: "viewer",
+    },
     tokens: [
       {
         token: {
@@ -41,14 +46,22 @@ const UserSchema = new Schema(
 /*
 Below code runs before the user is saved. 
 It hashes the password if the password is changed. 
+Also ensures role is set to a valid value for existing users.
 */
 UserSchema.pre("save", async function (next) {
   const user = this;
-  if (!user.isModified("password")) {
-    next();
-    return;
+
+  // Hash password if it's modified
+  if (user.isModified("password")) {
+    user.password = await bcrypt.hash(user.password, 8);
   }
-  user.password = await bcrypt.hash(user.password, 8);
+
+  // Ensure role is set to a valid value (for existing users without role)
+  const validRoles = ["organizer", "captain", "viewer"];
+  if (!user.role || !validRoles.includes(user.role)) {
+    user.role = "viewer";
+  }
+
   next();
 });
 

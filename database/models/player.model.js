@@ -18,7 +18,16 @@ const PlayerSchema = new Schema(
     owner: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false, // Optional for organizer-added players
+    },
+    addedBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true, // Always track who added the player
+    },
+    isOrganizerPlayer: {
+      type: Boolean,
+      default: false, // True if added by organizer for all auctions
     },
   },
   {
@@ -26,8 +35,14 @@ const PlayerSchema = new Schema(
   }
 );
 
-// Index to ensure unique player names per owner (optional - remove if same name allowed)
-PlayerSchema.index({ name: 1, owner: 1 }, { unique: true });
+// Index to ensure unique player names per owner (for participant players)
+PlayerSchema.index({ name: 1, owner: 1 }, { unique: true, sparse: true });
+
+// Index to ensure unique organizer player names globally
+PlayerSchema.index(
+  { name: 1, isOrganizerPlayer: 1 },
+  { unique: true, partialFilterExpression: { isOrganizerPlayer: true } }
+);
 
 const Player = mongoose.model("Player", PlayerSchema);
 

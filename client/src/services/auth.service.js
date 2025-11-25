@@ -14,12 +14,13 @@ const login = async (email, password) => {
     });
 };
 
-const register = async (username, email, password) => {
+const register = async (username, email, password, role) => {
   return await axiosInstance
     .post("signup", {
       email,
       password,
       username,
+      role,
     })
     .then((response) => {
       return response.data;

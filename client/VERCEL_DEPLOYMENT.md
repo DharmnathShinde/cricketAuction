@@ -33,7 +33,7 @@
    - Go to "Environment Variables" section
    - Add the following:
      - **Name**: `VITE_API_URL`
-     - **Value**: `http://localhost:8080`
+     - **Value**: `https://cricketauction-production-8eae.up.railway.app`
      - **Environment**: Production, Preview, Development (select all)
 
 5. **Deploy**
@@ -69,7 +69,7 @@
 
    - Follow the prompts
    - When asked for environment variables, add:
-     - `VITE_API_URL=http://localhost:8080`
+     - `VITE_API_URL=https://cricketauction-production-8eae.up.railway.app `
 
 5. **For Production Deployment**
    ```bash
