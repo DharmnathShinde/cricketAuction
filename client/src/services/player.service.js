@@ -16,11 +16,12 @@ const getPlayers = async () => {
     });
 };
 
-const addPlayer = async (name, role) => {
+const addPlayer = async (name, role, isOrganizerPlayer = false) => {
   return await axiosInstance
     .post("players", {
       name,
       role,
+      isOrganizerPlayer,
     })
     .then((response) => {
       return response.data;

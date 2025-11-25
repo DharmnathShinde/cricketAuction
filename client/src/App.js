@@ -7,6 +7,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import Auction from "./pages/Auction";
+import ViewAuctionPage from "./pages/ViewAuctionPage";
 import About from "./pages/About";
 import PreviousAuctions from "./pages/PreviousAuctions";
 import Players from "./pages/Players";
@@ -36,6 +37,7 @@ function App() {
               path="/about"
               render={(props) => <About {...props} />}
             />
+            <Route exact path="/view-auction" component={ViewAuctionPage} />
             <PrivateRoute exact path="/auction" component={Auction} />
             <PrivateRoute exact path="/players" component={Players} />
             <PrivateRoute

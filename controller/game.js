@@ -43,8 +43,14 @@ const create = async (io, socket, data) => {
       });
     }
 
-    const playerCount = await Player.countDocuments({ owner: userDoc._id });
-    if (playerCount === 0) {
+    // Check if user has players or if there are organizer players available
+    const userPlayerCount = await Player.countDocuments({ owner: userDoc._id });
+    const organizerPlayerCount = await Player.countDocuments({
+      isOrganizerPlayer: true,
+    });
+    const totalPlayerCount = userPlayerCount + organizerPlayerCount;
+
+    if (totalPlayerCount === 0) {
       return socket.emit("create-error", {
         message:
           "You need to add players before creating an auction. Please go to Players page to add players.",
@@ -146,16 +152,26 @@ const start = async (io, data) => {
     });
   }
 
-  const playerCount = await Player.countDocuments({ owner: creatorDoc._id });
-  if (playerCount === 0) {
+  // Count creator's players and organizer players
+  const creatorPlayerCount = await Player.countDocuments({
+    owner: creatorDoc._id,
+  });
+  const organizerPlayerCount = await Player.countDocuments({
+    isOrganizerPlayer: true,
+  });
+  const totalPlayerCount = creatorPlayerCount + organizerPlayerCount;
+
+  if (totalPlayerCount === 0) {
     return io.to(data.room).emit("start-error", {
       message:
-        "Creator has no players. Please add players before starting the auction.",
+        "No players found. Please add players before starting the auction.",
     });
   }
 
-  // Fetch only creator's players for the auction
-  const players = await Player.find({ owner: creatorDoc._id });
+  // Fetch creator's players and organizer players for the auction
+  const creatorPlayers = await Player.find({ owner: creatorDoc._id });
+  const organizerPlayers = await Player.find({ isOrganizerPlayer: true });
+  const players = [...creatorPlayers, ...organizerPlayers];
 
   if (players.length === 0) {
     return io.to(data.room).emit("start-error", {
@@ -289,8 +305,12 @@ const sendPlayersPreview = async (socket, room) => {
       return;
     }
 
-    const players = await Player.find({ owner: creatorDoc._id });
-    const formattedPlayers = players.map((player) => ({
+    // Fetch creator's players and organizer players
+    const creatorPlayers = await Player.find({ owner: creatorDoc._id });
+    const organizerPlayers = await Player.find({ isOrganizerPlayer: true });
+    const allPlayers = [...creatorPlayers, ...organizerPlayers];
+
+    const formattedPlayers = allPlayers.map((player) => ({
       _id: player._id,
       name: player.name,
       role: player.role,
