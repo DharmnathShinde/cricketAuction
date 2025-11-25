@@ -155,8 +155,8 @@ const SignUp = (props) => {
             value={role}
           />
 
-          {!loading ? (
-            <div className="center mt-8">
+          <div className="flex justify-center items-center mt-8">
+            {!loading ? (
               <button
                 type="submit"
                 className="relative inline-block px-8 py-3 rounded-xl transition-all duration-300 uppercase font-bold overflow-hidden border-none outline-none bg-gradient-to-r from-primary via-secondary to-accent text-white z-10 cursor-pointer shadow-lg hover:shadow-xl hover:scale-105 transform"
@@ -164,12 +164,10 @@ const SignUp = (props) => {
                 <span className="relative z-10">Sign Up</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-primary-dark via-secondary to-accent-hover opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
               </button>
-            </div>
-          ) : (
-            <div className="center mt-8">
+            ) : (
               <Loader size="2" />
-            </div>
-          )}
+            )}
+          </div>
         </form>
 
         {/* Error message with modern styling */}
