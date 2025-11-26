@@ -195,8 +195,14 @@ const start = async (io, data) => {
   }
 
   // Fetch creator's players and organizer players for the auction
-  const creatorPlayers = await Player.find({ owner: creatorDoc._id });
-  const organizerPlayers = await Player.find({ isOrganizerPlayer: true });
+  // Sort by createdAt ascending (oldest first) so first added = first in auction
+  const creatorPlayers = await Player.find({ owner: creatorDoc._id }).sort({
+    createdAt: 1,
+  });
+  const organizerPlayers = await Player.find({ isOrganizerPlayer: true }).sort({
+    createdAt: 1,
+  });
+  // Combine: creator players first, then organizer players (both in creation order)
   const players = [...creatorPlayers, ...organizerPlayers];
 
   if (players.length === 0) {
@@ -217,13 +223,13 @@ const start = async (io, data) => {
     },
   }));
 
-  // Shuffle players randomly
-  const shuffledPlayers = formattedPlayers.sort(() => Math.random() - 0.5);
-  auction.setPlayers(shuffledPlayers);
+  // Keep players in the order they were added (no shuffle)
+  // First added player will be first in auction
+  auction.setPlayers(formattedPlayers);
 
   // Emit players preview update to all in room
   io.to(data.room).emit("players-preview", {
-    players: shuffledPlayers,
+    players: formattedPlayers,
   });
 
   // Start the auction game
