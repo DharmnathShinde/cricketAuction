@@ -43,6 +43,13 @@ const create = async (io, socket, data) => {
       });
     }
 
+    // Check if user is organizer
+    if (userDoc.role !== "organizer") {
+      return socket.emit("create-error", {
+        message: "Only organizers can create auctions.",
+      });
+    }
+
     // Check if user has players or if there are organizer players available
     const userPlayerCount = await Player.countDocuments({ owner: userDoc._id });
     const organizerPlayerCount = await Player.countDocuments({
@@ -60,7 +67,7 @@ const create = async (io, socket, data) => {
     socket.join(data.room);
     const auction = new Auction(io.to(data.room));
     auction.creator = data.username; // Set the creator
-    auction.addUser(data.username);
+    // Don't add organizer as a participant - they only manage
     liveAuctions.set(data.room, auction);
     socket.emit("create-success", {
       room: data.room,
@@ -80,7 +87,7 @@ const create = async (io, socket, data) => {
 };
 
 // Called while joining a game
-const join = (io, socket, data) => {
+const join = async (io, socket, data) => {
   const auction = liveAuctions.get(data.room);
   if (!auction) {
     return socket.emit("join-result", {
@@ -88,6 +95,16 @@ const join = (io, socket, data) => {
       error: "Room does not exist!!",
     });
   }
+
+  // Check if user is organizer - organizers cannot join as players
+  const userDoc = await User.findOne({ username: data.username });
+  if (userDoc && userDoc.role === "organizer") {
+    return socket.emit("join-result", {
+      success: false,
+      error: "Organizers cannot join as players. They can only create and manage auctions.",
+    });
+  }
+
   auction.addUser(data.username);
   socket.join(data.room);
   socket.emit("join-result", {
@@ -133,6 +150,15 @@ const start = async (io, data) => {
   const auction = liveAuctions.get(data.room);
   if (!auction) {
     return;
+  }
+
+  // Check if user is organizer - use data.username if provided, otherwise use creator
+  const username = data.username || auction.creator;
+  const userDoc = await User.findOne({ username });
+  if (!userDoc || userDoc.role !== "organizer") {
+    return io.to(data.room).emit("start-error", {
+      message: "Only organizers can start auctions.",
+    });
   }
 
   // Only check and use creator's players
@@ -225,39 +251,71 @@ const bid = (socket, data) => {
   auction.displayBidder();
 };
 
-const next = (io, data) => {
+const next = async (io, data) => {
   const auction = liveAuctions.get(data.room);
-  auction.next(liveAuctions, data.room, data.user);
+  if (!auction) {
+    return;
+  }
+
+  // Check if user is organizer
+  const userDoc = await User.findOne({ username: data.user });
+  if (!userDoc || userDoc.role !== "organizer") {
+    return io.to(data.room).emit("next-error", {
+      message: "Only organizers can proceed to the next player.",
+    });
+  }
+
+  auction.next(liveAuctions, data.room, data.user, true);
 };
 
-const checkUser = (socket, user) => {
+const checkUser = async (socket, user) => {
   let toBeFound;
   let isViewer = false;
+  let isOrganizer = false;
   let room;
 
-  for (let [key, value] of liveAuctions) {
-    const find = value.findUser(user.username);
-    if (find) {
-      toBeFound = find;
-      room = key;
-      isViewer = false;
-      break;
-    } else if (value.isViewer(user.username)) {
-      toBeFound = { user: user.username };
-      room = key;
-      isViewer = true;
-      break;
+  // Check if user is organizer
+  const userDoc = await User.findOne({ username: user.username });
+  if (userDoc && userDoc.role === "organizer") {
+    // Find auctions where this organizer is the creator
+    for (let [key, value] of liveAuctions) {
+      if (value.creator === user.username) {
+        toBeFound = { user: user.username, isOrganizer: true };
+        room = key;
+        isOrganizer = true;
+        break;
+      }
+    }
+  } else {
+    // For non-organizers, check if they're participants or viewers
+    for (let [key, value] of liveAuctions) {
+      const find = value.findUser(user.username);
+      if (find) {
+        toBeFound = find;
+        room = key;
+        isViewer = false;
+        break;
+      } else if (value.isViewer(user.username)) {
+        toBeFound = { user: user.username };
+        room = key;
+        isViewer = true;
+        break;
+      }
     }
   }
 
   if (toBeFound) {
     socket.join(room);
+    const auction = liveAuctions.get(room);
+    const isCreator = auction.creator === user.username;
     socket.emit("existing-user", {
       room: room,
-      users: liveAuctions.get(room).fetchPlayers(),
-      initial: liveAuctions.get(room).getCurrentPlayer(),
-      started: liveAuctions.get(room).getStatus(),
-      isViewer: isViewer,
+      users: auction.fetchPlayers(),
+      initial: auction.getCurrentPlayer(),
+      started: auction.getStatus(),
+      isViewer: isViewer || isOrganizer, // Organizers are treated as viewers (no bidding)
+      starter: isCreator, // Only creator (organizer) can start
+      isOrganizer: isOrganizer,
     });
     // Send players preview
     sendPlayersPreview(socket, room);
@@ -400,6 +458,45 @@ const fetchDetails = (socket, data) => {
   });
 };
 
+// Cancel auction - only organizer can cancel
+const cancelAuction = async (io, data) => {
+  const auction = liveAuctions.get(data.room);
+  if (!auction) {
+    return io.to(data.room).emit("cancel-error", {
+      message: "Auction not found.",
+    });
+  }
+
+  // Check if user is organizer
+  const userDoc = await User.findOne({ username: data.username || auction.creator });
+  if (!userDoc || userDoc.role !== "organizer") {
+    return io.to(data.room).emit("cancel-error", {
+      message: "Only organizers can cancel auctions.",
+    });
+  }
+
+  // Check if user is the creator
+  if (auction.creator !== (data.username || auction.creator)) {
+    return io.to(data.room).emit("cancel-error", {
+      message: "Only the auction creator can cancel the auction.",
+    });
+  }
+
+  // Cancel the auction - clear interval, delete from liveAuctions, notify all users
+  auction.clearTimer();
+  liveAuctions.delete(data.room);
+  
+  io.to(data.room).emit("auction-cancelled", {
+    message: "Auction has been cancelled by the organizer.",
+  });
+
+  // Disconnect all users from the room
+  const sockets = await io.in(data.room).fetchSockets();
+  sockets.forEach((socket) => {
+    socket.leave(data.room);
+  });
+};
+
 module.exports = {
   create,
   join,
@@ -413,4 +510,5 @@ module.exports = {
   exitUser,
   sendPlayersPreview,
   fetchDetails,
+  cancelAuction,
 };

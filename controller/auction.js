@@ -202,19 +202,18 @@ class Auction {
     return this.findUser(username) !== undefined;
   }
 
-  next(liveAuctions, room, username) {
-    // Only participants can confirm next
-    if (!this.isParticipant(username)) {
+  next(liveAuctions, room, username, isOrganizer) {
+    // Only organizer can proceed to next player
+    if (!isOrganizer) {
       return;
     }
-    this.confirm++;
-    if (this.confirm >= this.users.length) {
-      if (!this.gameOver(liveAuctions, room)) {
-        this.resetTimer();
-        this.resetBid();
-        this.startInterval();
-        this.servePlayer();
-      }
+    
+    // Proceed to next player immediately (no confirmation needed)
+    if (!this.gameOver(liveAuctions, room)) {
+      this.resetTimer();
+      this.resetBid();
+      this.startInterval();
+      this.servePlayer();
     }
   }
 
