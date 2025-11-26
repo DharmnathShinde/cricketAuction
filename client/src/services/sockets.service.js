@@ -1,6 +1,6 @@
 import io from "socket.io-client";
 
-const url = "http://localhost:8080";
+const url = "https://cricketauction-production-8eae.up.railway.app";
 let socket;
 
 const connect = () => {
