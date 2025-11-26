@@ -17,12 +17,11 @@ const CreateAuction = ({
   user,
   setCreated,
   setJoin,
-  setView,
+  setView, // eslint-disable-line no-unused-vars
   setRoom,
   setMain,
 }) => {
   const [showNoPlayersModal, setShowNoPlayersModal] = useState(false);
-  const [playerCount, setPlayerCount] = useState(0);
   const [checkingPlayers, setCheckingPlayers] = useState(false);
   const history = useHistory();
 
@@ -44,23 +43,13 @@ const CreateAuction = ({
     };
   }, [socket, setCreated, setRoom, setMain]);
 
-  useEffect(() => {
-    // Check player count when component mounts
-    checkPlayerCount();
-  }, []);
-
-  const checkPlayerCount = async () => {
-    try {
-      const response = await getPlayerCount();
-      if (response.success) {
-        setPlayerCount(response.count || 0);
-      }
-    } catch (error) {
-      console.error("Error checking player count:", error);
-    }
-  };
-
   const newAuction = async () => {
+    // Check if user is organizer
+    if (user.role !== "organizer") {
+      alert("Only organizers can create auctions.");
+      return;
+    }
+
     setCheckingPlayers(true);
     try {
       const response = await getPlayerCount();
@@ -90,6 +79,11 @@ const CreateAuction = ({
   };
 
   const joinAuction = () => {
+    // Organizers cannot join auctions as players
+    if (user?.role === "organizer") {
+      alert("Organizers cannot join auctions as players. You can only create and manage auctions.");
+      return;
+    }
     setJoin(true);
   };
 
@@ -158,18 +152,22 @@ const CreateAuction = ({
 
               {/* Description - flex-grow to push button down */}
               <p className="text-text-secondary text-base mb-8 leading-relaxed flex-grow">
-                Start your own auction room and become the host. Set up a new
-                bidding session where you can invite other players to join and
-                compete for the best talent.
+                {user?.role === "organizer" 
+                  ? "Start your own auction room and become the host. Set up a new bidding session where you can invite other players to join and compete for the best talent."
+                  : "Only organizers can create auction rooms. Please join an existing auction or contact an organizer."}
               </p>
 
               {/* Button */}
               <button
                 onClick={newAuction}
-                disabled={checkingPlayers}
+                disabled={checkingPlayers || user?.role !== "organizer"}
                 className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-primary via-blue-600 to-primary-dark text-white font-semibold uppercase tracking-wide transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-105 transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               >
-                {checkingPlayers ? "Checking..." : "Create New Room"}
+                {checkingPlayers 
+                  ? "Checking..." 
+                  : user?.role !== "organizer" 
+                    ? "Organizers Only" 
+                    : "Create New Room"}
               </button>
             </div>
           </div>
@@ -195,17 +193,22 @@ const CreateAuction = ({
 
               {/* Description - flex-grow to push button down */}
               <p className="text-text-secondary text-base mb-8 leading-relaxed flex-grow">
-                Enter an existing auction room using a room ID. Join other
-                bidders in real-time and compete to build your dream team
-                through strategic bidding.
+                {user?.role === "organizer" 
+                  ? "Organizers cannot join auctions as players. You can only create and manage auctions."
+                  : "Enter an existing auction room using a room ID. Join other bidders in real-time and compete to build your dream team through strategic bidding."}
               </p>
 
               {/* Button */}
               <button
                 onClick={joinAuction}
-                className="w-full px-6 py-4 rounded-xl bg-gradient-to-r from-secondary via-purple-600 to-purple-700 text-white font-semibold uppercase tracking-wide transition-all duration-300 hover:shadow-xl hover:shadow-secondary/30 hover:scale-105 transform active:scale-95"
+                disabled={user?.role === "organizer"}
+                className={`w-full px-6 py-4 rounded-xl font-semibold uppercase tracking-wide transition-all duration-300 hover:shadow-xl hover:shadow-secondary/30 hover:scale-105 transform active:scale-95 ${
+                  user?.role === "organizer"
+                    ? "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-secondary via-purple-600 to-purple-700 text-white"
+                }`}
               >
-                Join Existing Room
+                {user?.role === "organizer" ? "Not Available" : "Join Existing Room"}
               </button>
             </div>
           </div>

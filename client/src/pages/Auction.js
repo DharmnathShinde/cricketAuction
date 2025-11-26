@@ -12,7 +12,7 @@ import Loader from "./Loading";
 
 import io from "socket.io-client";
 
-const url = "https://cricketauction-production-8eae.up.railway.app";
+const url = "http://localhost:8080";
 
 const Auction = () => {
   const { user } = useContext(UserContext);
@@ -53,7 +53,12 @@ const Auction = () => {
         setView(false);
         setCreated(false);
       } else {
-        if (data.isViewer) {
+        // If organizer (creator), show management view
+        if (data.isOrganizer || (data.starter && user?.role === "organizer")) {
+          setCreated(true);
+          setMain(true);
+          setView(false);
+        } else if (data.isViewer) {
           // If viewing, show view mode lobby
           setView(true);
           setCreated(true);

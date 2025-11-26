@@ -10,9 +10,10 @@ import {
   faArrowRight,
   faUsers,
   faCrown,
+  faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 
-const Game = ({ users, socket, room, user, initial }) => {
+const Game = ({ users, socket, room, user, initial, isViewer }) => {
   const [timer, setTimer] = useState(-1);
   const [bidder, setBidder] = useState("");
   const [amount, setAmount] = useState(0);
@@ -73,12 +74,17 @@ const Game = ({ users, socket, room, user, initial }) => {
       history.push("/auctions/played");
     });
 
+    socket.on("next-error", (data) => {
+      setError(data.message);
+    });
+
     return () => {
       socket.off("display");
       socket.off("bid");
       socket.off("bid-error");
       socket.off("player");
       socket.off("game-over");
+      socket.off("next-error");
     };
   }, [socket, history]);
 
@@ -109,6 +115,31 @@ const Game = ({ users, socket, room, user, initial }) => {
     setNext(false);
   };
 
+  const cancelAuction = () => {
+    if (window.confirm("Are you sure you want to cancel this auction? This will end the auction for all participants.")) {
+      socket.emit("cancelAuction", {
+        room,
+        username: user.username,
+      });
+    }
+  };
+
+  useEffect(() => {
+    socket.on("auction-cancelled", (data) => {
+      alert(data.message);
+      history.push("/auction");
+    });
+
+    socket.on("cancel-error", (data) => {
+      setError(data.message);
+    });
+
+    return () => {
+      socket.off("auction-cancelled");
+      socket.off("cancel-error");
+    };
+  }, [socket, history]);
+
   const getTimerColor = () => {
     if (timer < 4) return "text-red-500";
     if (timer < 7) return "text-yellow-500";
@@ -138,6 +169,18 @@ const Game = ({ users, socket, room, user, initial }) => {
             </h1>
           </div>
           <div className="h-1 w-24 bg-gradient-to-r from-primary via-secondary to-accent mx-auto rounded-full"></div>
+          {/* Cancel Auction Button - Only for Organizers */}
+          {user?.role === "organizer" && (
+            <div className="mt-4">
+              <button
+                onClick={cancelAuction}
+                className="px-6 py-2 rounded-xl font-semibold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 hover:border-red-500/70 mx-auto"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+                Cancel Auction
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Main Game Area */}
@@ -219,19 +262,23 @@ const Game = ({ users, socket, room, user, initial }) => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <button
-                  onClick={bid}
-                  disabled={timer <= 0}
-                  className={`flex-1 px-6 py-4 rounded-xl font-semibold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
-                    timer <= 0
-                      ? "bg-gray-600/50 text-gray-400 cursor-not-allowed"
-                      : "bg-gradient-to-r from-primary via-secondary to-accent text-white hover:shadow-lg hover:scale-105 transform"
-                  }`}
-                >
-                  <FontAwesomeIcon icon={faGavel} />
-                  Place Bid
-                </button>
-                {displayNext && (
+                {/* Only captains can bid - organizers manage, not bid */}
+                {!isViewer && user?.role === "captain" && (
+                  <button
+                    onClick={bid}
+                    disabled={timer <= 0}
+                    className={`flex-1 px-6 py-4 rounded-xl font-semibold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 ${
+                      timer <= 0
+                        ? "bg-gray-600/50 text-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-primary via-secondary to-accent text-white hover:shadow-lg hover:scale-105 transform"
+                    }`}
+                  >
+                    <FontAwesomeIcon icon={faGavel} />
+                    Place Bid
+                  </button>
+                )}
+                {/* Only organizer can proceed to next player */}
+                {displayNext && user?.role === "organizer" && (
                   <button
                     onClick={next}
                     className="flex-1 px-6 py-4 rounded-xl font-semibold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-secondary via-purple-600 to-accent text-white hover:shadow-lg hover:scale-105 transform"

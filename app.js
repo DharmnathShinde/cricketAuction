@@ -20,7 +20,7 @@ const server = http.createServer(app);
 
 const io = socketio(server, {
   cors: {
-    origin: "https://cricket-auction-6bnc.vercel.app",
+    origin: ["https://cricket-auction-6bnc.vercel.app", "http://localhost:3000"],
     credentials: true,
   },
 });
@@ -29,7 +29,7 @@ const io = socketio(server, {
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://cricket-auction-6bnc.vercel.app",
+    origin:  ["https://cricket-auction-6bnc.vercel.app", "http://localhost:3000"],
     credentials: true,
   })
 );

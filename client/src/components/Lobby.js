@@ -5,8 +5,9 @@ import {
   faPlay,
   faSignOutAlt,
   faUser,
+  faTimes,
 } from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const Lobby = ({
   socket,
@@ -40,6 +41,7 @@ const Lobby = ({
     }
     socket.emit("requestPlay", {
       room: code,
+      username: user.username,
     });
   };
 
@@ -51,6 +53,40 @@ const Lobby = ({
     setCreated(false);
     setJoin(false);
   };
+
+  const cancelAuction = () => {
+    if (window.confirm("Are you sure you want to cancel this auction? This will end the auction for all participants.")) {
+      socket.emit("cancelAuction", {
+        room: code,
+        username: user.username,
+      });
+    }
+  };
+
+  useEffect(() => {
+    socket.on("auction-cancelled", (data) => {
+      alert(data.message);
+      setCreated(false);
+      setJoin(false);
+    });
+
+    socket.on("cancel-error", (data) => {
+      alert(data.message);
+    });
+
+    socket.on("start-error", (data) => {
+      setErrors((prev) => ({
+        ...prev,
+        lobby: data.message,
+      }));
+    });
+
+    return () => {
+      socket.off("auction-cancelled");
+      socket.off("cancel-error");
+      socket.off("start-error");
+    };
+  }, [socket, setCreated, setJoin, setErrors]);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
@@ -147,6 +183,13 @@ const Lobby = ({
                 </span>
               </div>
             </div>
+            {main && user?.role === "organizer" && (
+              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+                <p className="text-sm text-blue-400">
+                  <span className="font-semibold">Organizer Mode:</span> You are managing this auction. You cannot join as a player.
+                </p>
+              </div>
+            )}
 
             {users.length === 0 ? (
               <div className="text-center py-8 text-text-muted">
@@ -203,7 +246,7 @@ const Lobby = ({
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-            {main && (
+            {main && user?.role === "organizer" && (
               <button
                 onClick={start}
                 disabled={users.length < 2}
@@ -215,6 +258,15 @@ const Lobby = ({
               >
                 <FontAwesomeIcon icon={faPlay} />
                 Start Auction
+              </button>
+            )}
+            {main && user?.role === "organizer" && (
+              <button
+                onClick={cancelAuction}
+                className="w-full sm:w-auto px-8 py-3 rounded-xl font-semibold uppercase tracking-wide transition-all duration-300 flex items-center justify-center gap-2 bg-red-500/20 border border-red-500/50 text-red-400 hover:bg-red-500/30 hover:border-red-500/70"
+              >
+                <FontAwesomeIcon icon={faTimes} />
+                Cancel Auction
               </button>
             )}
             <button

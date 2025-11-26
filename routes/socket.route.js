@@ -11,6 +11,7 @@ const {
   exitUser,
   sendPlayersPreview,
   fetchDetails,
+  cancelAuction,
 } = require("../controller/game");
 
 const socketRouter = (io) => {
@@ -33,6 +34,10 @@ const socketRouter = (io) => {
 
     socket.on("requestPlay", (data) => {
       start(io, data);
+    });
+
+    socket.on("cancelAuction", (data) => {
+      cancelAuction(io, data);
     });
 
     socket.on("start", (data) => {
